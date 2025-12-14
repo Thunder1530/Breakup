@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Heart Galaxy</title>
+<style>
+  html, body {
+    margin: 0;
+    overflow: hidden;
+    background: radial-gradient(circle, #050014, #000);
+  }
+  canvas {
+    display: block;
+    cursor: grab;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+let rotY = 0;
+let zoom = 1;
+let dragging = false;
+let lastX = 0;
+
+const WORDS = ["Harshini", "love", "forever", "u"];
+const stars = [];
+const bgStars = [];
+
+/* ❤️ Heart equation */
+function heart(t) {
+  return {
+    x: 16 * Math.sin(t) ** 3,
+    y: 13 * Math.cos(t)
+      - 5 * Math.cos(2*t)
+      - 2 * Math.cos(3*t)
+      - Math.cos(4*t)
+  };
+}
+
+/* 🌌 Background stars */
+for (let i = 0; i < 160; i++) {
+  bgStars.push({
+    x: (Math.random() - 0.5) * 3000,
+    y: (Math.random() - 0.5) * 3000,
+    z: Math.random() * 2000
+  });
+}
+
+/* 💖 EVEN LESS DENSE HEART */
+const layers = 6;            // reduced
+const pointsPerLayer = 70;   // reduced
+const spread = 2;            // reduced
+
+for (let l = 0; l < layers; l++) {
+  for (let i = 0; i < pointsPerLayer; i++) {
+    const t = (i / pointsPerLayer) * Math.PI * 2;
+    const p = heart(t);
+
+    stars.push({
+      x: (p.x + (Math.random()-0.5)*spread) * 18,
+      y: (-p.y + (Math.random()-0.5)*spread) * 18,
+      z: (l - layers/2) * 7,
+      word: WORDS[(i + l) % WORDS.length],
+      hue: 260 + Math.random() * 60
+    });
+  }
+}
+
+/* Rotation */
+function rotateY(p, a) {
+  return {
+    x: p.x * Math.cos(a) - p.z * Math.sin(a),
+    y: p.y,
+    z: p.x * Math.sin(a) + p.z * Math.cos(a)
+  };
+}
+
+/* Interaction */
+canvas.onmousedown = e => {
+  dragging = true;
+  lastX = e.clientX;
+};
+canvas.onmouseup = () => dragging = false;
+canvas.onmousemove = e => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastX) * 0.004;
+  lastX = e.clientX;
+};
+canvas.onwheel = e => {
+  zoom += e.deltaY * -0.001;
+  zoom = Math.max(0.6, Math.min(2.2, zoom));
+};
+
+/* 🎬 Render */
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.translate(canvas.width/2, canvas.height/2);
+
+  /* 🌌 Background */
+  bgStars.forEach(s => {
+    s.z -= 1.2;
+    if (s.z < 1) s.z = 2000;
+    const d = 400 / s.z;
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(s.x*d, s.y*d, 1, 1);
+  });
+
+  /* 💖 Heart */
+  stars.forEach(s => {
+    const p = rotateY(s, rotY);
+    const d = 700 / (p.z + 700);
+    const x = p.x * d * zoom;
+    const y = p.y * d * zoom;
+
+    // center hole
+    const nx = x / 260;
+    const ny = y / 200;
+    if ((nx*nx + ny*ny) < 0.35) return;
+
+    ctx.font = `${14 * d}px sans-serif`;
+    ctx.fillStyle = `hsla(${s.hue}, 75%, 75%, 0.9)`;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = `hsla(${s.hue}, 100%, 80%, 1)`;
+    ctx.fillText(s.word, x, y);
+  });
+
+  ctx.setTransform(1,0,0,1,0,0);
+
+  /* 🤍 CENTER MESSAGE (SMALLER & PERFECTLY CENTERED) */
+  ctx.textAlign = "center";
+  ctx.font = "26px serif";
+  ctx.fillStyle = "white";
+  ctx.shadowBlur = 22;
+  ctx.shadowColor = "white";
+
+  const msg = [
+    "I love you forever.",
+    "You are the only one for me.",
+    "No matter the distance,",
+    "I'll always be waiting for you."
+  ];
+
+  const startY = canvas.height / 2 - (msg.length - 1) * 18;
+
+  msg.forEach((line, i) => {
+    ctx.fillText(
+      line,
+      canvas.width / 2,
+      startY + i * 36
+    );
+  });
+
+  rotY += 0.0016;
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+onresize = () => {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+};
+</script>
+
+</body>
+</html>
